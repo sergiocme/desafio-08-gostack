@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 
 import AsyncStorage from '@react-native-community/async-storage';
+import { removeEmitHelper } from 'typescript';
 
 interface Product {
   id: string;
@@ -60,8 +61,26 @@ const CartProvider: React.FC = ({ children }) => {
   }, [products]);
 
   const decrement = useCallback(async id => {
-    // TODO DECREMENTS A PRODUCT QUANTITY IN THE CART
-  }, []);
+    const foundProduct = products.find((productInCart) => productInCart.id === id);
+    if (!foundProduct) return;
+
+    if (foundProduct.quantity === 1) {
+      remove(foundProduct.id);
+    } else {
+      setProducts(products.map((productInCart) => { 
+        if (productInCart.id === id) {
+          return { ...productInCart, quantity: productInCart.quantity - 1 };
+         }
+        return productInCart;
+      }));
+      await AsyncStorage.setItem('@GoMarketplace:products', JSON.stringify(products));
+    }
+  }, [products]);
+
+  const remove = useCallback(async (id) => {
+    setProducts(products.filter((productInCart) => productInCart.id !== id));
+    await AsyncStorage.setItem('@GoMarketplace:products', JSON.stringify(products));
+  }, [products]);
 
   const value = React.useMemo(
     () => ({ addToCart, increment, decrement, products }),
